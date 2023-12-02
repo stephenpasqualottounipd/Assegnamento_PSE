@@ -42,5 +42,16 @@ int main(){
     boid9.separation();
     boid9.alignment();
     boid9.separation();
+    boid0.update_position();
+    boid1.update_position();
+    boid2.update_position();
+    boid3.update_position();
+    boid4.update_position();
+    boid5.update_position();
+    boid6.update_position();
+    boid7.update_position();
+    boid8.update_position();
+    boid9.update_position();
+    cout << endl;
     }
 }

@@ -40,7 +40,7 @@ class boid{
         void separation (); 
         void alignment(); 
         void coesion(); 
-        //void update_position(); 
+        void update_position(); 
 
     private:
         int id_boid;
@@ -53,8 +53,8 @@ class boid{
         int save_int_from_vector(int index, int chose_vector); 
         void write_int_to_vector(int index, int chose_vector, int data);
         //codice dei vettori: 1-vettore x, 2-vettore y, 3-vettore vx, 4-vettore vy 
-        //void regulate_border(); 
-        //void limit_speed(); 
+        void regulate_border(); 
+        void limit_speed(); 
         int compute_distance(int otherx, int othery);
     
 };

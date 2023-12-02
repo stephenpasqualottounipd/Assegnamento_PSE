@@ -133,6 +133,49 @@ vector <int> yspeed(numboid, 6);
         }
     }
 
+    void boid::regulate_border(){
+        if (myx < leftmargin){
+            myvx = myvx + turnfactor;
+        }
+        if (myx > rightmargin){
+            myvx = myvx - turnfactor;
+        }
+        if (myy < bottommargin){
+            myvy = myvy + turnfactor;
+        }
+        if (myy > topmargin){
+            myvy = myvy - turnfactor;
+        }
+    }
+
+    void boid::limit_speed(){
+        int speed{0};
+        speed = sqrt(myvx * myvx + myvy * myvy);
+        if (speed > maxspeed){
+            myvx = (myvx * maxspeed) / speed;
+            myvy = (myvy * maxspeed) / speed;
+        }
+        if (speed < minspeed){
+            myvx = (myvx * minspeed) / speed;
+            myvy = (myvy * minspeed) / speed;
+        }
+
+    }
+
+    void boid::update_position(){
+        limit_speed();
+        regulate_border();
+        //cout << myx << " "<< myy << " " << myvx << " " << myvy << " boid no: "<< id_boid << endl;
+        limit_speed();
+        myx = myx + myvx;
+        myy = myy + myvy;
+        write_int_to_vector(id_boid, vector_x, myx);
+        write_int_to_vector(id_boid, vector_y, myy);
+        write_int_to_vector(id_boid, vector_vx, myvx);
+        write_int_to_vector(id_boid, vector_vy, myvy);
+        cout << myx << " "<< myy << " " << myvx << " " << myvy << " boid no: "<< id_boid << endl;
+    }
+
     int boid::save_int_from_vector(int index, int chose_vector){
         int value{0};
         switch (chose_vector){
@@ -174,6 +217,7 @@ vector <int> yspeed(numboid, 6);
             exit(EXIT_FAILURE);
         }
     }
+
 
 
 
