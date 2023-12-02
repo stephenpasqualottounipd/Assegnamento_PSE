@@ -11,6 +11,7 @@ int main(){
     boid boid7{7};
     boid boid8{8};
     boid boid9{9};
+    print_limits_to_file();
     for(int i{0}; i < max_iteration; ++i){
     boid0.separation();
     boid0.alignment();
@@ -53,5 +54,6 @@ int main(){
     boid8.update_position();
     boid9.update_position();
     cout << endl;
+    print_to_file();
     }
 }

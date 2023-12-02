@@ -58,6 +58,6 @@ class boid{
         int compute_distance(int otherx, int othery);
     
 };
-//void print_limits_to_file();
-//void print_to_file();
+void print_limits_to_file();
+void print_to_file();
 #endif

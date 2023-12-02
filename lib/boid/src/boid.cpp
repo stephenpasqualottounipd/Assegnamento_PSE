@@ -218,6 +218,21 @@ vector <int> yspeed(numboid, 6);
         }
     }
 
+void print_to_file(){
+    ofstream fout("coordinate.txt", ios::app);
+    for(int i{0}; i < numboid; ++i){
+        fout << xpos.at(i) << " " << ypos.at(i) << " ";  
+    }
+    fout << endl;
+    fout.close();
+}
+
+void print_limits_to_file(){
+    ofstream fout("coordinate.txt");
+    fout << leftmargin << " " << rightmargin << " " << bottommargin << " " << topmargin << endl;
+    fout.close();
+}
+
 
 
 
