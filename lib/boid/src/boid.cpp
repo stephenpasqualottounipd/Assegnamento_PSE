@@ -1,7 +1,11 @@
 
 #include<cstdlib>
+#include<ctime>
 using std::rand;
-
+using std::srand;
+#include <mutex>
+using std::mutex;
+using std::unique_lock;
 
 #include "boid.h"
 
@@ -14,38 +18,32 @@ vector <int> xpos(numboid, 1);
 vector <int> ypos(numboid, 2);
 vector <int> xspeed(numboid, 4);
 vector <int> yspeed(numboid, 6);
+const long int constructorreads{4};
+const long int separationreads{2*numboid};
+const long int alignmentsreads{4*numboid};
+long int no_of_writes{0};
+long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsreads + separationreads)};
+//separationreads == coesionreads
 
     boid::boid()
-        :id_boid{id_default},
-        myx{myx_default},
+        //:id_boid{id_default},
+        :myx{myx_default},
         myy{myy_default},
         myvx{myvx_default},
         myvy{myvy_default}
     {} //il costruttore di default non verrà utilizzato
 
-    boid::boid(int idboid)
-        :id_boid{idboid}
+    void boid::save_boid(int id_boid)
+        //:id_boid{idboid}
     {
-        if (id_boid == 1){
-            for (int i = 0; i < numboid; i++){
-                int xx = (rand() % (topmargin + 1));
-                int yy = (rand() % (topmargin + 1));
-                xpos[i] = xx;
-                ypos[i] = yy;
-                int vxx = (rand() % (maxspeed + 1));
-                int vyy = (rand() % (maxspeed + 1));
-                xspeed[i] = vxx;
-                yspeed[i]= vyy;
-            }
-        }
-        if (id_boid == id_default){
+        /*if (id_boid == id_default){
             cerr << "You created a default boid instead of a custom boid!" << endl;
             exit(EXIT_FAILURE);
         }
         if (id_boid > id_default){
             cerr << "You created a too much boids!" << endl;
             exit(EXIT_FAILURE);
-        }
+        }*/
         myx = save_int_from_vector(id_boid, vector_x);
         myy = save_int_from_vector(id_boid, vector_y);
         myvx = save_int_from_vector(id_boid, vector_vx);
@@ -60,7 +58,7 @@ vector <int> yspeed(numboid, 6);
         return distance;
     }
 
-    void boid::separation(){
+    void boid::separation(int id_boid){
         int close_dx{0};
         int close_dy{0};
         int otherx{0};
@@ -77,9 +75,10 @@ vector <int> yspeed(numboid, 6);
         }
         myvx = close_dx * avoidfactor;
         myvy = close_dy * avoidfactor;
+        //cout << myvx << endl << myvy << endl;
     }
 
-    void boid::alignment(){
+    void boid::alignment(int id_boid){
         int xvel_avg{0};
         int yvel_avg{0};
         int neighboring_boids{0};
@@ -100,15 +99,17 @@ vector <int> yspeed(numboid, 6);
                 neighboring_boids++;
             }
         }
+        //cout << xvel_avg << endl << yvel_avg << endl;
         if (neighboring_boids > 0){
             xvel_avg = xvel_avg / neighboring_boids;
             yvel_avg = yvel_avg / neighboring_boids;
             myvx += (xvel_avg - myvx) * alignfactor;
             myvy += (yvel_avg - myvy) * alignfactor;
         }
+        //cout << myvx << endl << myvy << endl;
     }
 
-    void boid::coesion(){
+    void boid::coesion(int id_boid){
         int xpos_avg{0};
         int ypos_avg{0};
         int neighboring_boids{0};
@@ -131,6 +132,7 @@ vector <int> yspeed(numboid, 6);
                 myvy += (ypos_avg - myy) * centeringfactor;
             }
         }
+        //cout << myvx << endl << myvy << endl;
     }
 
     void boid::regulate_border(){
@@ -162,7 +164,7 @@ vector <int> yspeed(numboid, 6);
 
     }
 
-    void boid::update_position(){
+    void boid::update_position(int id_boid){
         limit_speed();
         regulate_border();
         //cout << myx << " "<< myy << " " << myvx << " " << myvy << " boid no: "<< id_boid << endl;
@@ -177,6 +179,7 @@ vector <int> yspeed(numboid, 6);
     }
 
     int boid::save_int_from_vector(int index, int chose_vector){
+        unique_lock<mutex> mlock(Mutex);
         int value{0};
         switch (chose_vector){
             case vector_x:
@@ -195,10 +198,20 @@ vector <int> yspeed(numboid, 6);
             cerr << "You are asking for a value that does not exist!" << endl;
             exit(EXIT_FAILURE);
         }
+        no_of_reads--;
+        if (no_of_reads == 0){
+            no_of_writes = 4 * numboid;
+            mlock.unlock();
+            readytowrite.notify_one();
+        }
         return value;
     }
 
     void boid::write_int_to_vector(int index, int chose_vector, int data){
+        unique_lock<mutex> mlock(Mutex);
+        while (no_of_writes == 0){
+            readytowrite.wait(mlock);
+        }
         switch (chose_vector){
             case vector_x:
             xpos.at(index) = data;
@@ -216,6 +229,13 @@ vector <int> yspeed(numboid, 6);
             cerr << "You are asking for a value that does not exist!" << endl;
             exit(EXIT_FAILURE);
         }
+        --no_of_writes;
+        if(no_of_writes == 0){
+            no_of_reads = numboid * (constructorreads + separationreads + alignmentsreads + separationreads);
+        }
+        mlock.unlock();
+        readytowrite.notify_one();
+        
     }
 
 void print_to_file(){
@@ -232,6 +252,22 @@ void print_limits_to_file(){
     fout << leftmargin << " " << rightmargin << " " << bottommargin << " " << topmargin << endl;
     fout.close();
 }
+
+void create_random_vectors(){
+    srand(std::time(0));
+    for (int i = 0; i < numboid; i++){
+        int xx = (rand() % (topmargin + 1));
+        int yy = (rand() % (topmargin + 1));
+        xpos[i] = xx;
+        ypos[i] = yy;
+        int vxx = (rand() % (maxspeed + 1));
+        int vyy = (rand() % (maxspeed + 1));
+        xspeed[i] = vxx;
+        yspeed[i]= vyy;
+        cout << xx << " "<< yy << " " << vxx << " " << vyy << " random no: "<< i << endl;
+    }
+}
+
 
 
 
