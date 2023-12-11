@@ -6,7 +6,6 @@ using std::srand;
 #include <mutex>
 using std::mutex;
 using std::unique_lock;
-
 #include "boid.h"
 
 const int id_default{999};
@@ -18,47 +17,42 @@ vector <int> xpos(numboid, 1);
 vector <int> ypos(numboid, 2);
 vector <int> xspeed(numboid, 4);
 vector <int> yspeed(numboid, 6);
+vector <int> auxxpos(numboid, 1);
+vector <int> auxypos(numboid, 2);
+vector <int> auxxspeed(numboid, 4);
+vector <int> auxyspeed(numboid, 6);
 const long int constructorreads{4};
 const long int separationreads{2*numboid};
 const long int alignmentsreads{4*numboid};
 long int no_of_writes{0};
 long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsreads + separationreads)};
 //separationreads == coesionreads
+int this_read {1};
 
     boid::boid()
-        //:id_boid{id_default},
-        :myx{myx_default},
+        :id_boid{id_default},
+        myx{myx_default},
         myy{myy_default},
         myvx{myvx_default},
         myvy{myvy_default}
     {} //il costruttore di default non verrà utilizzato
 
-    void boid::save_boid(int id_boid)
-        //:id_boid{idboid}
+    boid::boid(const int idboid)
+        :id_boid{idboid}
     {
-        /*if (id_boid == id_default){
-            cerr << "You created a default boid instead of a custom boid!" << endl;
-            exit(EXIT_FAILURE);
-        }
-        if (id_boid > id_default){
-            cerr << "You created a too much boids!" << endl;
-            exit(EXIT_FAILURE);
-        }*/
         myx = save_int_from_vector(id_boid, vector_x);
         myy = save_int_from_vector(id_boid, vector_y);
         myvx = save_int_from_vector(id_boid, vector_vx);
         myvy = save_int_from_vector(id_boid, vector_vy);
-        //cout << myx << " "<< myy << " " << myvx << " " << myvy << " costruttore" << endl;
-
     }
 
-    int boid::compute_distance(int otherx, int othery){
+    int boid::compute_distance(const int otherx, const int othery){
         int distance{0};
         distance = sqrt(((myx-otherx)^2)+((myy-othery)^2));
         return distance;
     }
 
-    void boid::separation(int id_boid){
+    void boid::separation(){
         int close_dx{0};
         int close_dy{0};
         int otherx{0};
@@ -75,10 +69,9 @@ long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsr
         }
         myvx = close_dx * avoidfactor;
         myvy = close_dy * avoidfactor;
-        //cout << myvx << endl << myvy << endl;
     }
 
-    void boid::alignment(int id_boid){
+    void boid::alignment(){
         int xvel_avg{0};
         int yvel_avg{0};
         int neighboring_boids{0};
@@ -99,17 +92,15 @@ long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsr
                 neighboring_boids++;
             }
         }
-        //cout << xvel_avg << endl << yvel_avg << endl;
         if (neighboring_boids > 0){
             xvel_avg = xvel_avg / neighboring_boids;
             yvel_avg = yvel_avg / neighboring_boids;
             myvx += (xvel_avg - myvx) * alignfactor;
             myvy += (yvel_avg - myvy) * alignfactor;
         }
-        //cout << myvx << endl << myvy << endl;
     }
 
-    void boid::coesion(int id_boid){
+    void boid::coesion(){
         int xpos_avg{0};
         int ypos_avg{0};
         int neighboring_boids{0};
@@ -125,14 +116,13 @@ long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsr
                 ypos_avg += othery;
                 neighboring_boids++;
             }
-            if (neighboring_boids > 0){
-                xpos_avg = xpos_avg / neighboring_boids;
-                ypos_avg = ypos_avg / neighboring_boids;
-                myvx += (xpos_avg - myx) * centeringfactor;
-                myvy += (ypos_avg - myy) * centeringfactor;
-            }
         }
-        //cout << myvx << endl << myvy << endl;
+        if (neighboring_boids > 0){
+            //xpos_avg = xpos_avg / neighboring_boids;
+            //ypos_avg = ypos_avg / neighboring_boids;
+            myvx += (((xpos_avg - myx)) / (dencenteringfactor * neighboring_boids)) * numcenteringfactor;
+            myvy += (((xpos_avg - myx)) / (dencenteringfactor * neighboring_boids)) * numcenteringfactor;
+        }
     }
 
     void boid::regulate_border(){
@@ -164,10 +154,9 @@ long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsr
 
     }
 
-    void boid::update_position(int id_boid){
+    void boid::update_position(){
         limit_speed();
         regulate_border();
-        //cout << myx << " "<< myy << " " << myvx << " " << myvy << " boid no: "<< id_boid << endl;
         limit_speed();
         myx = myx + myvx;
         myy = myy + myvy;
@@ -178,9 +167,10 @@ long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsr
         cout << myx << " "<< myy << " " << myvx << " " << myvy << " boid no: "<< id_boid << endl;
     }
 
-    int boid::save_int_from_vector(int index, int chose_vector){
+    int boid::save_int_from_vector(const int index, const int chose_vector){
         unique_lock<mutex> mlock(Mutex);
         int value{0};
+        no_of_reads--;
         switch (chose_vector){
             case vector_x:
             value = xpos.at(index);
@@ -198,8 +188,7 @@ long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsr
             cerr << "You are asking for a value that does not exist!" << endl;
             exit(EXIT_FAILURE);
         }
-        no_of_reads--;
-        if (no_of_reads == 0){
+        if (no_of_reads == 1){
             no_of_writes = 4 * numboid;
             mlock.unlock();
             readytowrite.notify_one();
@@ -207,9 +196,9 @@ long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsr
         return value;
     }
 
-    void boid::write_int_to_vector(int index, int chose_vector, int data){
+    void boid::write_int_to_vector(const int index, const int chose_vector, const int data){
         unique_lock<mutex> mlock(Mutex);
-        while (no_of_writes == 0){
+        while (no_of_writes == 0 || no_of_reads > 0){
             readytowrite.wait(mlock);
         }
         switch (chose_vector){
@@ -235,7 +224,6 @@ long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsr
         }
         mlock.unlock();
         readytowrite.notify_one();
-        
     }
 
 void print_to_file(){
