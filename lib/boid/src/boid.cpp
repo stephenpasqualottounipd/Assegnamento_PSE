@@ -6,28 +6,24 @@ using std::srand;
 #include <mutex>
 using std::mutex;
 using std::unique_lock;
+#include<iomanip>
 #include "boid.h"
 
 const int id_default{999};
-const int myx_default{5};
-const int myy_default{5};
-const int myvx_default{2};
-const int myvy_default{2};
-vector <int> xpos(numboid, 1);
-vector <int> ypos(numboid, 2);
-vector <int> xspeed(numboid, 4);
-vector <int> yspeed(numboid, 6);
-vector <int> auxxpos(numboid, 1);
-vector <int> auxypos(numboid, 2);
-vector <int> auxxspeed(numboid, 4);
-vector <int> auxyspeed(numboid, 6);
+const float myx_default{5};
+const float myy_default{5};
+const float myvx_default{2};
+const float myvy_default{2};
+vector <float> xpos(numboid, 1);
+vector <float> ypos(numboid, 2);
+vector <float> xspeed(numboid, 4);
+vector <float> yspeed(numboid, 6);
 const long int constructorreads{4};
 const long int separationreads{2*numboid};
 const long int alignmentsreads{4*numboid};
 long int no_of_writes{0};
 long int no_of_reads{numboid * (constructorreads + separationreads + alignmentsreads + separationreads)};
 //separationreads == coesionreads
-int this_read {1};
 
     boid::boid()
         :id_boid{id_default},
@@ -40,27 +36,27 @@ int this_read {1};
     boid::boid(const int idboid)
         :id_boid{idboid}
     {
-        myx = save_int_from_vector(id_boid, vector_x);
-        myy = save_int_from_vector(id_boid, vector_y);
-        myvx = save_int_from_vector(id_boid, vector_vx);
-        myvy = save_int_from_vector(id_boid, vector_vy);
+        myx = save_float_from_vector(id_boid, vector_x);
+        myy = save_float_from_vector(id_boid, vector_y);
+        myvx = save_float_from_vector(id_boid, vector_vx);
+        myvy = save_float_from_vector(id_boid, vector_vy);
     }
 
-    int boid::compute_distance(const int otherx, const int othery){
-        int distance{0};
-        distance = sqrt(((myx-otherx)^2)+((myy-othery)^2));
+    float boid::compute_distance(const float otherx, const float othery){
+        float distance{0};
+        distance = sqrt((myx-otherx)*(myx-otherx))+((myy-othery)*(myy-othery));
         return distance;
     }
 
     void boid::separation(){
-        int close_dx{0};
-        int close_dy{0};
-        int otherx{0};
-        int othery{0};
-        int distance{0};
+        float close_dx{0};
+        float close_dy{0};
+        float otherx{0};
+        float othery{0};
+        float distance{0};
         for(int i{0}; i < numboid; i++){
-            otherx = save_int_from_vector(i, vector_x);
-            othery = save_int_from_vector(i, vector_y);
+            otherx = save_float_from_vector(i, vector_x);
+            othery = save_float_from_vector(i, vector_y);
             distance = compute_distance(otherx, othery);
             if (distance <= d_sep && id_boid != i){
             close_dx += myx - otherx;
@@ -72,19 +68,19 @@ int this_read {1};
     }
 
     void boid::alignment(){
-        int xvel_avg{0};
-        int yvel_avg{0};
-        int neighboring_boids{0};
-        int othervx{0};
-        int othervy{0};
-        int otherx{0};
-        int othery{0};
-        int distance{0};
+        float xvel_avg{0};
+        float yvel_avg{0};
+        float neighboring_boids{0};
+        float othervx{0};
+        float othervy{0};
+        float otherx{0};
+        float othery{0};
+        float distance{0};
         for(int i{0}; i < numboid; i++){
-            othervx = save_int_from_vector(i, vector_vx);
-            othervy = save_int_from_vector(i, vector_vy);
-            otherx = save_int_from_vector(i, vector_x);
-            othery = save_int_from_vector(i, vector_y);
+            othervx = save_float_from_vector(i, vector_vx);
+            othervy = save_float_from_vector(i, vector_vy);
+            otherx = save_float_from_vector(i, vector_x);
+            othery = save_float_from_vector(i, vector_y);
             distance = compute_distance(otherx, othery);
             if (distance <= d_ca && id_boid != i){
                 xvel_avg += othervx;
@@ -93,63 +89,73 @@ int this_read {1};
             }
         }
         if (neighboring_boids > 0){
-            xvel_avg = xvel_avg / neighboring_boids;
-            yvel_avg = yvel_avg / neighboring_boids;
-            myvx += (xvel_avg - myvx) * alignfactor;
-            myvy += (yvel_avg - myvy) * alignfactor;
+            xvel_avg = find_average(xvel_avg, neighboring_boids);
+            yvel_avg = find_average(yvel_avg, neighboring_boids);
+            myvx += ((xvel_avg) - myvx) * alignfactor;
+            myvy += ((yvel_avg) - myvy) * alignfactor;
         }
     }
 
     void boid::coesion(){
-        int xpos_avg{0};
-        int ypos_avg{0};
-        int neighboring_boids{0};
-        int otherx{0};
-        int othery{0};
-        int distance{0};
+        float xpos_avg{0};
+        float ypos_avg{0};
+        float neighboring_boids{0};
+        float otherx{0};
+        float othery{0};
+        float distance{0};
         for(int i{0}; i < numboid; i++){
-            otherx = save_int_from_vector(i, vector_x);
-            othery = save_int_from_vector(i, vector_y);
+            otherx = save_float_from_vector(i, vector_x);
+            othery = save_float_from_vector(i, vector_y);
             distance = compute_distance(otherx, othery);
             if (distance <= d_ca && id_boid != i){
+                neighboring_boids++;
                 xpos_avg += otherx;
                 ypos_avg += othery;
-                neighboring_boids++;
             }
         }
         if (neighboring_boids > 0){
-            //xpos_avg = xpos_avg / neighboring_boids;
-            //ypos_avg = ypos_avg / neighboring_boids;
-            myvx += (((xpos_avg - myx)) / (dencenteringfactor * neighboring_boids)) * numcenteringfactor;
-            myvy += (((xpos_avg - myx)) / (dencenteringfactor * neighboring_boids)) * numcenteringfactor;
+            xpos_avg = find_average(xpos_avg, neighboring_boids);
+            ypos_avg = find_average(ypos_avg, neighboring_boids);
+            myvx += ((xpos_avg) - myx) * centeringfactor;
+            myvy += ((ypos_avg) - myy) * centeringfactor;
         }
     }
 
     void boid::regulate_border(){
-        if (myx < leftmargin){
+        if (myx < (leftmargin+maxspeed)){
             myvx = myvx + turnfactor;
         }
-        if (myx > rightmargin){
+        if (myx > (rightmargin-maxspeed)){
             myvx = myvx - turnfactor;
         }
-        if (myy < bottommargin){
+        if (myy < (bottommargin+maxspeed)){
             myvy = myvy + turnfactor;
         }
-        if (myy > topmargin){
+        if (myy > (topmargin-maxspeed)){
             myvy = myvy - turnfactor;
         }
     }
 
     void boid::limit_speed(){
-        int speed{0};
+        float speed{0};
         speed = sqrt(myvx * myvx + myvy * myvy);
         if (speed > maxspeed){
-            myvx = (myvx * maxspeed) / speed;
-            myvy = (myvy * maxspeed) / speed;
+            myvx = (myvx / speed) * maxspeed;
+            myvy = (myvy / speed) * maxspeed;
         }
         if (speed < minspeed){
-            myvx = (myvx * minspeed) / speed;
-            myvy = (myvy * minspeed) / speed;
+            if (myvx != 0.00){
+                myvx = (myvx / speed) * minspeed;
+            }
+            else{
+                myvx = minspeed;
+            }
+            if (myvy != 0.00){
+                myvy = (myvy / speed) * minspeed;
+            }
+            else{
+                myvy = minspeed;
+            }
         }
 
     }
@@ -160,16 +166,15 @@ int this_read {1};
         limit_speed();
         myx = myx + myvx;
         myy = myy + myvy;
-        write_int_to_vector(id_boid, vector_x, myx);
-        write_int_to_vector(id_boid, vector_y, myy);
-        write_int_to_vector(id_boid, vector_vx, myvx);
-        write_int_to_vector(id_boid, vector_vy, myvy);
-        cout << myx << " "<< myy << " " << myvx << " " << myvy << " boid no: "<< id_boid << endl;
+        write_float_to_vector(id_boid, vector_x, myx);
+        write_float_to_vector(id_boid, vector_y, myy);
+        write_float_to_vector(id_boid, vector_vx, myvx);
+        write_float_to_vector(id_boid, vector_vy, myvy);
     }
 
-    int boid::save_int_from_vector(const int index, const int chose_vector){
+    float boid::save_float_from_vector(const int index, const int chose_vector){
         unique_lock<mutex> mlock(Mutex);
-        int value{0};
+        float value{0};
         no_of_reads--;
         switch (chose_vector){
             case vector_x:
@@ -188,7 +193,7 @@ int this_read {1};
             cerr << "You are asking for a value that does not exist!" << endl;
             exit(EXIT_FAILURE);
         }
-        if (no_of_reads == 1){
+        if (no_of_reads == 0){
             no_of_writes = 4 * numboid;
             mlock.unlock();
             readytowrite.notify_one();
@@ -196,7 +201,7 @@ int this_read {1};
         return value;
     }
 
-    void boid::write_int_to_vector(const int index, const int chose_vector, const int data){
+    void boid::write_float_to_vector(const int index, const int chose_vector, const float data){
         unique_lock<mutex> mlock(Mutex);
         while (no_of_writes == 0 || no_of_reads > 0){
             readytowrite.wait(mlock);
@@ -227,16 +232,17 @@ int this_read {1};
     }
 
 void print_to_file(){
-    ofstream fout("coordinate.txt", ios::app);
+    ofstream fout("coordinates.txt", ios::app);
+    fout << std::fixed << std::setprecision(1);
     for(int i{0}; i < numboid; ++i){
-        fout << xpos.at(i) << " " << ypos.at(i) << " ";  
+        fout  << xpos.at(i) << " " << ypos.at(i) << " ";  
     }
     fout << endl;
     fout.close();
 }
 
 void print_limits_to_file(){
-    ofstream fout("coordinate.txt");
+    ofstream fout("coordinates.txt");
     fout << leftmargin << " " << rightmargin << " " << bottommargin << " " << topmargin << endl;
     fout.close();
 }
@@ -244,18 +250,22 @@ void print_limits_to_file(){
 void create_random_vectors(){
     srand(std::time(0));
     for (int i = 0; i < numboid; i++){
-        int xx = (rand() % (topmargin + 1));
-        int yy = (rand() % (topmargin + 1));
+        float xx = static_cast<float>(rand() % (201));
+        float yy = static_cast<float>(rand() % (201));
         xpos[i] = xx;
         ypos[i] = yy;
-        int vxx = (rand() % (maxspeed + 1));
-        int vyy = (rand() % (maxspeed + 1));
+        float vxx = minspeed + static_cast<float>((rand() % ((4))));
+        float vyy = minspeed + static_cast<float>((rand() % ((4))));
         xspeed[i] = vxx;
         yspeed[i]= vyy;
-        cout << xx << " "<< yy << " " << vxx << " " << vyy << " random no: "<< i << endl;
     }
 }
 
+float boid::find_average(const float maxvalue, const float divider){
+    float average{0};
+    average = maxvalue / divider;
+    return average;
+}
 
 
 
