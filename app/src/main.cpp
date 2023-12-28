@@ -23,7 +23,6 @@ int main(){
 	for (boids_it=boids.begin(); boids_it != boids.end(); ++boids_it)
 		boids_it->join();
     print_to_file();
-    //cout << endl;
     }   
     cout << "fine iterazioni" << endl;
     return 0;

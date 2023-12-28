@@ -18,24 +18,28 @@ using std::is_empty;
 using std::mutex;
 #include <condition_variable>
 using std::condition_variable;
-const int numboid{15}; 
-const float avoidfactor{5}; //inizializzazioni provvisorie
+const int numboid{50}; 
+const float avoidfactor{10}; //inizializzazioni provvisorie
 const float topmargin{200};
+const int inttopmargin{200};
 const float bottommargin{0};
 const float leftmargin{0};
+const int intrightmargin{200};
 const float rightmargin{200};
 const float d_sep{100};
 const float d_ca{20};
-const float alignfactor{0.5}; 
-const float centeringfactor{0.5};
+const float alignfactor{0.1}; 
+const float centeringfactor{0.01};
 const float turnfactor{6};
 const float maxspeed{5};
+const int intmaxspeed{5};
 const float minspeed{1};
+const int intminspeed{1};
 const int vector_x{1};
 const int vector_y{2};
 const int vector_vx{3};
 const int vector_vy{4};
-const int max_iteration{100};
+const int max_iteration{200};
 mutex Mutex;
 condition_variable readytowrite;
 

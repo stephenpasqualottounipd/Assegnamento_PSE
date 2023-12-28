@@ -250,12 +250,12 @@ void print_limits_to_file(){
 void create_random_vectors(){
     srand(std::time(0));
     for (int i = 0; i < numboid; i++){
-        float xx = static_cast<float>(rand() % (201));
-        float yy = static_cast<float>(rand() % (201));
+        float xx = static_cast<float>(rand() % (inttopmargin + 1));
+        float yy = static_cast<float>(rand() % (intrightmargin + 1));
         xpos[i] = xx;
         ypos[i] = yy;
-        float vxx = minspeed + static_cast<float>((rand() % ((4))));
-        float vyy = minspeed + static_cast<float>((rand() % ((4))));
+        float vxx = minspeed + static_cast<float>((rand() % ((intmaxspeed - intminspeed))));
+        float vyy = minspeed + static_cast<float>((rand() % ((intmaxspeed - intminspeed))));
         xspeed[i] = vxx;
         yspeed[i]= vyy;
     }
